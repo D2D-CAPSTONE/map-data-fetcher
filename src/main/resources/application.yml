@@ -1,6 +1,6 @@
 spring:
   application:
-    name: kakao-map-data-fetcher
+    name: map-data-fetcher
 
 kakao:
   map:
