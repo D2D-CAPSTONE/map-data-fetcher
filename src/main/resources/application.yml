@@ -14,5 +14,6 @@ naver:
     selenium:
       search-url: https://map.naver.com/p/search/
       response-url-keyword: /p/api/search/allSearch
+      graphql-response-url-keyword: https://pcmap-api.place.naver.com/graphql
       headless: false
       timeout: 15s

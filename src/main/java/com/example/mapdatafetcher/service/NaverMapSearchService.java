@@ -9,15 +9,22 @@ import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.logging.Level;
+import org.openqa.selenium.By;
 import org.openqa.selenium.PageLoadStrategy;
 import org.openqa.selenium.TimeoutException;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebDriverException;
+import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.logging.LogEntries;
 import org.openqa.selenium.logging.LogEntry;
 import org.openqa.selenium.logging.LogType;
 import org.openqa.selenium.logging.LoggingPreferences;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriUtils;
 
@@ -39,8 +46,14 @@ public class NaverMapSearchService {
       driver.get(
           properties.searchUrl() + UriUtils.encodePathSegment(request.q(), StandardCharsets.UTF_8));
 
-      String responseBody = waitForSearchResponseBody(driver);
-      return objectMapper.readTree(responseBody);
+      JsonNode firstPageResponse =
+          objectMapper.readTree(waitForSearchResponseBody(driver, properties.responseUrlKeyword()));
+      if (request.page() <= 1) {
+        return firstPageResponse;
+      }
+
+      switchToSearchIframe(driver);
+      return navigateToPageAndCaptureGraphql(driver, request.page());
     } catch (Exception exception) {
       throw new IllegalStateException("Failed to capture Naver map search response", exception);
     } finally {
@@ -66,7 +79,83 @@ public class NaverMapSearchService {
     return driver;
   }
 
-  private String waitForSearchResponseBody(ChromeDriver driver) throws Exception {
+  private JsonNode navigateToPageAndCaptureGraphql(ChromeDriver driver, int targetPage)
+      throws Exception {
+    WebDriverWait wait = new WebDriverWait(driver, properties.timeout());
+    By paginationContainerSelector = By.xpath("//*[@id='app-root']/div/div[2]/div[2]");
+    By pageButtonSelector =
+        By.xpath("//*[@id='app-root']/div/div[2]/div[2]/a[normalize-space(text()) != '']");
+
+    try {
+      wait.until(ExpectedConditions.visibilityOfElementLocated(paginationContainerSelector));
+    } catch (TimeoutException exception) {
+      throw new IllegalStateException("Pagination bar did not appear", exception);
+    }
+
+    Optional<WebElement> targetButton = findPageButton(driver, targetPage, pageButtonSelector);
+    if (targetButton.isEmpty()) {
+      throw new IllegalStateException("Requested page button not found: " + targetPage);
+    }
+
+    clearPerformanceLogs(driver);
+    Thread.sleep(300L);
+    WebElement clickableButton;
+    try {
+      clickableButton = wait.until(ExpectedConditions.elementToBeClickable(targetButton.get()));
+    } catch (TimeoutException exception) {
+      throw new IllegalStateException(
+          "Target page button was not clickable: " + targetPage, exception);
+    }
+
+    clickableButton.click();
+    Thread.sleep(300L);
+    try {
+      wait.until(
+          driverInstance ->
+              findSelectedPageButton(driverInstance, pageButtonSelector)
+                  .map(button -> String.valueOf(targetPage).equals(button.getText().trim()))
+                  .orElse(false));
+    } catch (TimeoutException exception) {
+      throw new IllegalStateException(
+          "Page selection did not change after click: " + targetPage, exception);
+    }
+
+    return objectMapper.readTree(
+        waitForSearchResponseBody(driver, properties.graphqlResponseUrlKeyword()));
+  }
+
+  private void switchToSearchIframe(ChromeDriver driver) {
+    driver.switchTo().defaultContent();
+    WebDriverWait wait = new WebDriverWait(driver, properties.timeout());
+    wait.until(
+        ExpectedConditions.frameToBeAvailableAndSwitchToIt(By.cssSelector("iframe#searchIframe")));
+  }
+
+  private Optional<WebElement> findPageButton(
+      WebDriver driver, int targetPage, By pageButtonSelector) {
+    return driver.findElements(pageButtonSelector).stream()
+        .filter(element -> String.valueOf(targetPage).equals(element.getText().trim()))
+        .findFirst();
+  }
+
+  private Optional<WebElement> findSelectedPageButton(WebDriver driver, By pageButtonSelector) {
+    return driver.findElements(pageButtonSelector).stream()
+        .filter(
+            element -> {
+              String className = element.getAttribute("class");
+              String ariaCurrent = element.getAttribute("aria-current");
+              return (className != null && className.contains("qxokY"))
+                  || "page".equalsIgnoreCase(ariaCurrent);
+            })
+        .findFirst();
+  }
+
+  private void clearPerformanceLogs(ChromeDriver driver) {
+    driver.manage().logs().get(LogType.PERFORMANCE);
+  }
+
+  private String waitForSearchResponseBody(ChromeDriver driver, String responseUrlKeyword)
+      throws Exception {
     Instant deadline = Instant.now().plus(properties.timeout());
 
     while (Instant.now().isBefore(deadline)) {
@@ -81,13 +170,18 @@ public class NaverMapSearchService {
 
         JsonNode params = message.path("params");
         String url = params.path("response").path("url").asText();
-        if (!url.contains(properties.responseUrlKeyword())) {
+        if (!url.contains(responseUrlKeyword)) {
           continue;
         }
 
         String requestId = params.path("requestId").asText();
-        Map<String, Object> bodyResult =
-            driver.executeCdpCommand("Network.getResponseBody", Map.of("requestId", requestId));
+        Map<String, Object> bodyResult;
+        try {
+          bodyResult =
+              driver.executeCdpCommand("Network.getResponseBody", Map.of("requestId", requestId));
+        } catch (WebDriverException ignored) {
+          continue;
+        }
         Object body = bodyResult.get("body");
         if (!(body instanceof String bodyText)) {
           break;
