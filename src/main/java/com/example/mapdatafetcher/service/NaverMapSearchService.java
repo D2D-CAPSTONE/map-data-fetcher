@@ -4,6 +4,7 @@ import com.example.mapdatafetcher.config.NaverMapSeleniumProperties;
 import com.example.mapdatafetcher.dto.NaverMapSearchRequest;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Base64;
@@ -49,11 +50,11 @@ public class NaverMapSearchService {
       JsonNode firstPageResponse =
           objectMapper.readTree(waitForSearchResponseBody(driver, properties.responseUrlKeyword()));
       if (request.page() <= 1) {
-        return firstPageResponse;
+        return extractFirstPageItems(firstPageResponse);
       }
 
       switchToSearchIframe(driver);
-      return navigateToPageAndCaptureGraphql(driver, request.page());
+      return extractGraphqlItems(navigateToPageAndCaptureGraphql(driver, request.page()));
     } catch (Exception exception) {
       throw new IllegalStateException("Failed to capture Naver map search response", exception);
     } finally {
@@ -152,6 +153,29 @@ public class NaverMapSearchService {
 
   private void clearPerformanceLogs(ChromeDriver driver) {
     driver.manage().logs().get(LogType.PERFORMANCE);
+  }
+
+  private JsonNode extractFirstPageItems(JsonNode response) {
+    JsonNode list = response.path("result").path("place").path("list");
+    if (list.isArray()) {
+      return list;
+    }
+
+    return JsonNodeFactory.instance.arrayNode();
+  }
+
+  private JsonNode extractGraphqlItems(JsonNode response) {
+    JsonNode payload = response;
+    if (response.isArray() && !response.isEmpty()) {
+      payload = response.get(0);
+    }
+
+    JsonNode items = payload.path("data").path("restaurants").path("items");
+    if (items.isArray()) {
+      return items;
+    }
+
+    return JsonNodeFactory.instance.arrayNode();
   }
 
   private String waitForSearchResponseBody(ChromeDriver driver, String responseUrlKeyword)
