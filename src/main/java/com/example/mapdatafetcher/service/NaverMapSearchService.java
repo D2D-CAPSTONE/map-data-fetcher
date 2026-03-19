@@ -99,7 +99,6 @@ public class NaverMapSearchService {
     }
 
     clearPerformanceLogs(driver);
-    Thread.sleep(300L);
     WebElement clickableButton;
     try {
       clickableButton = wait.until(ExpectedConditions.elementToBeClickable(targetButton.get()));
@@ -109,7 +108,6 @@ public class NaverMapSearchService {
     }
 
     clickableButton.click();
-    Thread.sleep(300L);
     try {
       wait.until(
           driverInstance ->
