@@ -47,14 +47,11 @@ public class NaverMapSearchService {
       driver.get(
           properties.searchUrl() + UriUtils.encodePathSegment(request.q(), StandardCharsets.UTF_8));
 
-      JsonNode firstPageResponse =
-          objectMapper.readTree(waitForSearchResponseBody(driver, properties.responseUrlKeyword()));
-      if (request.page() <= 1) {
-        return extractFirstPageItems(firstPageResponse);
-      }
-
+      waitForSearchResponseBody(driver, properties.responseUrlKeyword());
       switchToSearchIframe(driver);
-      return extractGraphqlItems(navigateToPageAndCaptureGraphql(driver, request.page()));
+      Integer requestedPage = request.page();
+      int targetPage = requestedPage == null ? 1 : requestedPage;
+      return extractGraphqlItems(captureGraphqlByPage(driver, targetPage));
     } catch (Exception exception) {
       throw new IllegalStateException("Failed to capture Naver map search response", exception);
     } finally {
@@ -121,6 +118,15 @@ public class NaverMapSearchService {
 
     return objectMapper.readTree(
         waitForSearchResponseBody(driver, properties.graphqlResponseUrlKeyword()));
+  }
+
+  private JsonNode captureGraphqlByPage(ChromeDriver driver, int targetPage) throws Exception {
+    if (targetPage <= 1) {
+      navigateToPageAndCaptureGraphql(driver, 2);
+      return navigateToPageAndCaptureGraphql(driver, 1);
+    }
+
+    return navigateToPageAndCaptureGraphql(driver, targetPage);
   }
 
   private void switchToSearchIframe(ChromeDriver driver) {
