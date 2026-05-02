@@ -62,7 +62,12 @@ public class NaverMapSearchService {
   private ChromeDriver createDriver() {
     ChromeOptions options = new ChromeOptions();
     options.setPageLoadStrategy(PageLoadStrategy.EAGER);
-    options.addArguments("--disable-gpu", "--start-maximized");
+    options.addArguments(
+        "--disable-gpu",
+        "--no-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-setuid-sandbox",
+        "--window-size=1920,1080");
 
     if (properties.headless()) {
       options.addArguments("--headless=new");
