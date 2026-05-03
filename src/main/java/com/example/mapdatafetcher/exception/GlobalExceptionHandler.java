@@ -31,6 +31,12 @@ public class GlobalExceptionHandler {
         .body(new ErrorResponse("Failed to call Kakao map search", exception.getMessage()));
   }
 
+  @ExceptionHandler(AppConfigurationException.class)
+  public ResponseEntity<ErrorResponse> handleAppConfiguration(AppConfigurationException exception) {
+    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .body(new ErrorResponse("Application configuration error", exception.getMessage()));
+  }
+
   @ExceptionHandler(IllegalStateException.class)
   public ResponseEntity<ErrorResponse> handleIllegalState(IllegalStateException exception) {
     return ResponseEntity.status(HttpStatus.BAD_GATEWAY)

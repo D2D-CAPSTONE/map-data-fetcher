@@ -11,11 +11,20 @@ import org.springframework.web.client.RestClient;
 @EnableConfigurationProperties({KakaoMapClientProperties.class, NaverMapSeleniumProperties.class})
 public class MapClientConfig {
 
-  @Bean
+  @Bean("kakaoMapRestClient")
   RestClient kakaoMapRestClient(RestClient.Builder builder, KakaoMapClientProperties properties) {
     return builder
         .baseUrl(properties.baseUrl())
         .defaultHeader(HttpHeaders.REFERER, properties.referer())
+        .defaultHeader(HttpHeaders.USER_AGENT, properties.userAgent())
+        .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+        .build();
+  }
+
+  @Bean("kakaoLocalRestClient")
+  RestClient kakaoLocalRestClient(RestClient.Builder builder, KakaoMapClientProperties properties) {
+    return builder
+        .baseUrl(properties.localBaseUrl())
         .defaultHeader(HttpHeaders.USER_AGENT, properties.userAgent())
         .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
         .build();

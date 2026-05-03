@@ -5,16 +5,13 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 
-@Schema(name = "NaverMapSearchRequest", description = "Naver Map search request")
+@Schema(name = "NaverMapSearchRequest", description = "네이버맵 검색 요청")
 public record NaverMapSearchRequest(
-    @Schema(
-            description = "Search keyword",
-            example = "gangnam station",
-            requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "검색어", example = "노원역 맛집", requiredMode = Schema.RequiredMode.REQUIRED)
         @NotBlank(message = "q is required")
         String q,
     @Schema(
-            description = "Result page number",
+            description = "결과 페이지 번호",
             example = "1",
             defaultValue = "1",
             minimum = "1",
