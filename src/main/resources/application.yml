@@ -2,6 +2,13 @@ spring:
   application:
     name: map-data-fetcher
 
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: alpha
+    tags-sorter: alpha
+  default-produces-media-type: application/json
+
 kakao:
   map:
     client:

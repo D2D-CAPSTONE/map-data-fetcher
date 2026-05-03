@@ -1,5 +1,7 @@
 package com.example.mapdatafetcher.exception;
 
+import com.example.mapdatafetcher.dto.ErrorResponse;
+import com.example.mapdatafetcher.dto.ValidationErrorResponse;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
@@ -14,31 +16,26 @@ import org.springframework.web.client.RestClientException;
 public class GlobalExceptionHandler {
 
   @ExceptionHandler(BindException.class)
-  public ResponseEntity<Map<String, Object>> handleValidation(BindException exception) {
+  public ResponseEntity<ValidationErrorResponse> handleValidation(BindException exception) {
     Map<String, String> errors = new LinkedHashMap<>();
     for (FieldError fieldError : exception.getFieldErrors()) {
       errors.put(fieldError.getField(), fieldError.getDefaultMessage());
     }
 
-    Map<String, Object> body = new LinkedHashMap<>();
-    body.put("message", "Invalid request");
-    body.put("errors", errors);
-    return ResponseEntity.badRequest().body(body);
+    return ResponseEntity.badRequest().body(new ValidationErrorResponse("Invalid request", errors));
   }
 
   @ExceptionHandler(RestClientException.class)
-  public ResponseEntity<Map<String, Object>> handleRestClient(RestClientException exception) {
-    Map<String, Object> body = new LinkedHashMap<>();
-    body.put("message", "Failed to call Kakao map search");
-    body.put("detail", exception.getMessage());
-    return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(body);
+  public ResponseEntity<ErrorResponse> handleRestClient(RestClientException exception) {
+    return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
+        .body(new ErrorResponse("Failed to call Kakao map search", exception.getMessage()));
   }
 
   @ExceptionHandler(IllegalStateException.class)
-  public ResponseEntity<Map<String, Object>> handleIllegalState(IllegalStateException exception) {
-    Map<String, Object> body = new LinkedHashMap<>();
-    body.put("message", "Failed to capture browser network response");
-    body.put("detail", exception.getMessage());
-    return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(body);
+  public ResponseEntity<ErrorResponse> handleIllegalState(IllegalStateException exception) {
+    return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
+        .body(
+            new ErrorResponse(
+                "Failed to capture browser network response", exception.getMessage()));
   }
 }
