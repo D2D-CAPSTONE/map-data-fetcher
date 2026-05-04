@@ -1,5 +1,16 @@
 ## [Velog - 서버 환경 설정 정리](https://velog.io/@0verfl0w767/Spring-Boot-%EC%84%9C%EB%B2%84%EC%97%90-%EC%84%A4%EC%B9%98)
 
+## 서버 환경
+- **Cloud & OS** : GCP Compute Engine (E2), Ubuntu 26.04
+- **Backend** : Java 17, Spring Boot 3.3.8
+- **Infra & Process Manager** : Nginx, PM2
+- **CI/CD** : GitHub Actions (scp-action, ssh-action)
+
+## 배포 파이프라인
+1. `main` 브랜치 Push 시 GitHub Actions 워크플로우 실행
+2. 가상 환경(Ubuntu)에서 JDK 17 세팅 후 `./gradlew clean bootJar` 로 JAR 파일 빌드
+3. **SCP**: `appleboy/scp-action`을 통해 빌드된 JAR 파일을 GCP 서버(`~/map-data-fetcher/build/libs`)로 전송
+4. **SSH**: `appleboy/ssh-action`을 통해 서버에 SSH로 접속하여 PM2로 애플리케이션 시작 또는 재시작 (`pm2 start` / `pm2 restart`)
 
 ## Swagger API Documentation
 
