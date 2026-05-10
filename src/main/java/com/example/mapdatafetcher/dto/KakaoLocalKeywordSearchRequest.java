@@ -8,7 +8,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-@Schema(name = "KakaoLocalKeywordSearchRequest", description = "카카오 위치 기반 키워드 검색 요청")
+@Schema(name = "KakaoLocalKeywordSearchRequest", description = "카카오맵 위치 기반 키워드 검색 요청")
 public record KakaoLocalKeywordSearchRequest(
     @Schema(description = "검색어", example = "카페", requiredMode = Schema.RequiredMode.REQUIRED)
         @NotBlank(message = "query is required")

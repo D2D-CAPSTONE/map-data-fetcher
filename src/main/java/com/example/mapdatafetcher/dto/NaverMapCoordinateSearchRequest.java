@@ -8,7 +8,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-@Schema(name = "NaverMapCoordinateSearchRequest", description = "네이버 지도 위치 기반 키워드 검색 요청")
+@Schema(name = "NaverMapCoordinateSearchRequest", description = "네이버맵 위치 기반 키워드 검색 요청")
 public record NaverMapCoordinateSearchRequest(
     @Schema(description = "검색어", example = "카페", requiredMode = Schema.RequiredMode.REQUIRED)
         @NotBlank(message = "query is required")

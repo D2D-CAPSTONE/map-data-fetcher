@@ -22,26 +22,24 @@ public class GlobalExceptionHandler {
       errors.put(fieldError.getField(), fieldError.getDefaultMessage());
     }
 
-    return ResponseEntity.badRequest().body(new ValidationErrorResponse("Invalid request", errors));
+    return ResponseEntity.badRequest().body(new ValidationErrorResponse("잘못된 요청입니다", errors));
   }
 
   @ExceptionHandler(RestClientException.class)
   public ResponseEntity<ErrorResponse> handleRestClient(RestClientException exception) {
     return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
-        .body(new ErrorResponse("Failed to call Kakao map search", exception.getMessage()));
+        .body(new ErrorResponse("카카오맵 검색 호출에 실패했습니다", exception.getMessage()));
   }
 
   @ExceptionHandler(AppConfigurationException.class)
   public ResponseEntity<ErrorResponse> handleAppConfiguration(AppConfigurationException exception) {
     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-        .body(new ErrorResponse("Application configuration error", exception.getMessage()));
+        .body(new ErrorResponse("애플리케이션 설정 오류입니다", exception.getMessage()));
   }
 
   @ExceptionHandler(IllegalStateException.class)
   public ResponseEntity<ErrorResponse> handleIllegalState(IllegalStateException exception) {
     return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
-        .body(
-            new ErrorResponse(
-                "Failed to capture browser network response", exception.getMessage()));
+        .body(new ErrorResponse("네이버맵 응답 수집에 실패했습니다", exception.getMessage()));
   }
 }

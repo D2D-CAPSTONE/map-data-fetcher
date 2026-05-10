@@ -55,11 +55,15 @@ public class KakaoMapSearchController {
                 schema = @Schema(implementation = ValidationErrorResponse.class))),
     @ApiResponse(
         responseCode = "502",
-        description = "카카오맵 외부 호출에 실패했습니다",
+        description = "카카오맵 검색 호출에 실패했습니다",
         content =
             @Content(
                 mediaType = MediaType.APPLICATION_JSON_VALUE,
-                schema = @Schema(implementation = ErrorResponse.class)))
+                schema = @Schema(implementation = ErrorResponse.class),
+                examples =
+                    @ExampleObject(
+                        value =
+                            "{\"message\":\"카카오맵 검색 호출에 실패했습니다\",\"detail\":\"GET 요청 처리 중 외부 API 응답을 정상적으로 받지 못했습니다\"}")))
   })
   @GetMapping(value = "/search", produces = MediaType.APPLICATION_JSON_VALUE)
   public JsonNode search(@Valid @ParameterObject @ModelAttribute KakaoMapSearchRequest request) {
@@ -67,8 +71,8 @@ public class KakaoMapSearchController {
   }
 
   @Operation(
-      summary = "좌표 기준 카카오 장소 검색",
-      description = "검색어와 중심 좌표(경도, 위도)를 기준으로 카카오 로컬 키워드 검색 API를 호출합니다.")
+      summary = "좌표 기준 카카오맵 검색",
+      description = "검색어와 중심 좌표(경도, 위도)를 기준으로 카카오맵 검색 결과 원본 데이터를 조회합니다.")
   @ApiResponses({
     @ApiResponse(
         responseCode = "200",
@@ -90,18 +94,26 @@ public class KakaoMapSearchController {
                 schema = @Schema(implementation = ValidationErrorResponse.class))),
     @ApiResponse(
         responseCode = "500",
-        description = "카카오 REST API 키가 설정되어 있지 않습니다",
+        description = "카카오맵 REST API 키가 설정되어 있지 않습니다",
         content =
             @Content(
                 mediaType = MediaType.APPLICATION_JSON_VALUE,
-                schema = @Schema(implementation = ErrorResponse.class))),
+                schema = @Schema(implementation = ErrorResponse.class),
+                examples =
+                    @ExampleObject(
+                        value =
+                            "{\"message\":\"애플리케이션 설정 오류입니다\",\"detail\":\"KAKAO_REST_API_KEY is not configured\"}"))),
     @ApiResponse(
         responseCode = "502",
-        description = "카카오 로컬 API 호출에 실패했습니다",
+        description = "카카오맵 검색 호출에 실패했습니다",
         content =
             @Content(
                 mediaType = MediaType.APPLICATION_JSON_VALUE,
-                schema = @Schema(implementation = ErrorResponse.class)))
+                schema = @Schema(implementation = ErrorResponse.class),
+                examples =
+                    @ExampleObject(
+                        value =
+                            "{\"message\":\"카카오맵 검색 호출에 실패했습니다\",\"detail\":\"GET 요청 처리 중 외부 API 응답을 정상적으로 받지 못했습니다\"}")))
   })
   @GetMapping(value = "/coordinate", produces = MediaType.APPLICATION_JSON_VALUE)
   public JsonNode searchLocalKeyword(
