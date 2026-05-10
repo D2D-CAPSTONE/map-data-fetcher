@@ -18,6 +18,9 @@ import org.springframework.web.util.UriComponentsBuilder;
 @Service
 public class KakaoMapSearchService {
 
+  private static final int DEFAULT_LOCAL_SEARCH_SIZE = 15;
+  private static final String DEFAULT_LOCAL_SEARCH_SORT = "distance";
+
   private final RestClient kakaoMapRestClient;
   private final RestClient kakaoLocalRestClient;
   private final KakaoMapClientProperties kakaoMapClientProperties;
@@ -76,8 +79,8 @@ public class KakaoMapSearchService {
                         .queryParam("y", request.y())
                         .queryParamIfPresent("radius", Optional.ofNullable(request.radius()))
                         .queryParam("page", request.page())
-                        .queryParam("size", request.size())
-                        .queryParam("sort", request.sort())
+                        .queryParam("size", DEFAULT_LOCAL_SEARCH_SIZE)
+                        .queryParam("sort", DEFAULT_LOCAL_SEARCH_SORT)
                         .build())
             .header(HttpHeaders.AUTHORIZATION, "KakaoAK " + kakaoMapClientProperties.restApiKey())
             .accept(MediaType.APPLICATION_JSON)
