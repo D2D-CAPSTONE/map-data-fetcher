@@ -1,6 +1,7 @@
 package com.example.mapdatafetcher.service;
 
 import com.example.mapdatafetcher.config.NaverMapSeleniumProperties;
+import com.example.mapdatafetcher.dto.NaverMapCoordinateSearchRequest;
 import com.example.mapdatafetcher.dto.NaverMapSearchRequest;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -13,6 +14,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.openqa.selenium.By;
+import org.openqa.selenium.Keys;
 import org.openqa.selenium.PageLoadStrategy;
 import org.openqa.selenium.TimeoutException;
 import org.openqa.selenium.WebDriver;
@@ -27,10 +29,16 @@ import org.openqa.selenium.logging.LoggingPreferences;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.springframework.stereotype.Service;
+import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.web.util.UriUtils;
 
 @Service
 public class NaverMapSearchService {
+
+  private static final String DEFAULT_MAP_CAMERA = "15.00,0,0,0,dh";
+  private static final By SEARCH_INPUT_SELECTOR =
+      By.cssSelector(
+          "input.input_search, input[type='search'], input[placeholder], input[aria-label]");
 
   private final ObjectMapper objectMapper;
   private final NaverMapSeleniumProperties properties;
@@ -44,14 +52,26 @@ public class NaverMapSearchService {
     ChromeDriver driver = createDriver();
     try {
       driver.executeCdpCommand("Network.enable", Map.of());
-      driver.get(
-          properties.searchUrl() + UriUtils.encodePathSegment(request.q(), StandardCharsets.UTF_8));
-
-      waitForSearchResponseBody(driver, properties.responseUrlKeyword());
-      switchToSearchIframe(driver);
       Integer requestedPage = request.page();
       int targetPage = requestedPage == null ? 1 : requestedPage;
-      return extractGraphqlItems(captureGraphqlByPage(driver, targetPage));
+      driver.get(buildSearchUrl(request.q()));
+      return captureSearchResults(driver, targetPage);
+    } catch (Exception exception) {
+      throw new IllegalStateException("Failed to capture Naver map search response", exception);
+    } finally {
+      driver.quit();
+    }
+  }
+
+  public JsonNode searchByCoordinate(NaverMapCoordinateSearchRequest request) {
+    ChromeDriver driver = createDriver();
+    try {
+      driver.executeCdpCommand("Network.enable", Map.of());
+      Integer requestedPage = request.page();
+      int targetPage = requestedPage == null ? 1 : requestedPage;
+      driver.get(buildCoordinateUrl(request.x(), request.y()));
+      submitSearchKeyword(driver, request.query());
+      return captureSearchResults(driver, targetPage);
     } catch (Exception exception) {
       throw new IllegalStateException("Failed to capture Naver map search response", exception);
     } finally {
@@ -80,6 +100,52 @@ public class NaverMapSearchService {
     ChromeDriver driver = new ChromeDriver(options);
     driver.manage().window().maximize();
     return driver;
+  }
+
+  private String buildSearchUrl(String query) {
+    return properties.searchUrl() + UriUtils.encodePathSegment(query, StandardCharsets.UTF_8);
+  }
+
+  private String buildCoordinateUrl(Double x, Double y) {
+    String searchUrl = properties.searchUrl();
+    int searchPathIndex = searchUrl.indexOf("/search/");
+    String baseUrl = searchPathIndex >= 0 ? searchUrl.substring(0, searchPathIndex) : searchUrl;
+    return UriComponentsBuilder.fromUriString(baseUrl)
+        .queryParam("lng", x)
+        .queryParam("lat", y)
+        .queryParam("c", DEFAULT_MAP_CAMERA)
+        .build(true)
+        .toUriString();
+  }
+
+  private void submitSearchKeyword(ChromeDriver driver, String query) {
+    WebElement searchInput = waitForVisibleSearchInput(driver);
+    clearPerformanceLogs(driver);
+    searchInput.click();
+    searchInput.sendKeys(Keys.chord(Keys.CONTROL, "a"), Keys.DELETE);
+    searchInput.sendKeys(query);
+    searchInput.sendKeys(Keys.ENTER);
+  }
+
+  private WebElement waitForVisibleSearchInput(ChromeDriver driver) {
+    WebDriverWait wait = new WebDriverWait(driver, properties.timeout());
+    return wait.until(
+        driverInstance ->
+            driverInstance.findElements(SEARCH_INPUT_SELECTOR).stream()
+                .filter(WebElement::isDisplayed)
+                .findFirst()
+                .orElse(null));
+  }
+
+  private JsonNode captureSearchResults(ChromeDriver driver, int targetPage) throws Exception {
+    JsonNode firstPageResponse =
+        objectMapper.readTree(waitForSearchResponseBody(driver, properties.responseUrlKeyword()));
+    if (targetPage <= 1) {
+      return extractFirstPageItems(firstPageResponse);
+    }
+
+    switchToSearchIframe(driver);
+    return extractGraphqlItems(captureGraphqlByPage(driver, targetPage));
   }
 
   private JsonNode navigateToPageAndCaptureGraphql(ChromeDriver driver, int targetPage)

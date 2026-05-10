@@ -1,6 +1,7 @@
 package com.example.mapdatafetcher.controller;
 
 import com.example.mapdatafetcher.dto.ErrorResponse;
+import com.example.mapdatafetcher.dto.NaverMapCoordinateSearchRequest;
 import com.example.mapdatafetcher.dto.NaverMapSearchRequest;
 import com.example.mapdatafetcher.dto.ValidationErrorResponse;
 import com.example.mapdatafetcher.service.NaverMapSearchService;
@@ -63,5 +64,37 @@ public class NaverMapSearchController {
   @GetMapping(value = "/search", produces = MediaType.APPLICATION_JSON_VALUE)
   public JsonNode search(@Valid @ParameterObject @ModelAttribute NaverMapSearchRequest request) {
     return naverMapSearchService.search(request);
+  }
+
+  @Operation(
+      summary = "좌표 기준 네이버 지도 검색",
+      description = "검색어와 중심 좌표(경도, 위도)를 기준으로 네이버 지도 검색 결과 원본 데이터를 조회합니다.")
+  @ApiResponses({
+    @ApiResponse(
+        responseCode = "200",
+        description = "좌표 기반 검색에 성공했습니다",
+        content =
+            @Content(
+                mediaType = MediaType.APPLICATION_JSON_VALUE,
+                array = @ArraySchema(schema = @Schema(implementation = Object.class)))),
+    @ApiResponse(
+        responseCode = "400",
+        description = "요청 파라미터가 올바르지 않습니다",
+        content =
+            @Content(
+                mediaType = MediaType.APPLICATION_JSON_VALUE,
+                schema = @Schema(implementation = ValidationErrorResponse.class))),
+    @ApiResponse(
+        responseCode = "502",
+        description = "네이버 지도 응답 수집에 실패했습니다",
+        content =
+            @Content(
+                mediaType = MediaType.APPLICATION_JSON_VALUE,
+                schema = @Schema(implementation = ErrorResponse.class)))
+  })
+  @GetMapping(value = "/coordinate", produces = MediaType.APPLICATION_JSON_VALUE)
+  public JsonNode searchByCoordinate(
+      @Valid @ParameterObject @ModelAttribute NaverMapCoordinateSearchRequest request) {
+    return naverMapSearchService.searchByCoordinate(request);
   }
 }
