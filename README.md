@@ -3,8 +3,13 @@
 ## 서버 환경
 - **Cloud & OS** : GCP Compute Engine (E2), Ubuntu 26.04
 - **Backend** : Java 17, Spring Boot 3.3.8
+  - Kakao Map API : Spring RestClient, Kakao Map Keyword API
+  - Naver Map API : Selenium WebDriver(ChromeDriver), Chrome DevTools Protocol 기반 네트워크 응답 수집
+  - Request/Response : Spring MVC, Jackson
+- **API Docs** : Swagger UI, OpenAPI 3 (springdoc-openapi)
 - **Infra & Process Manager** : Nginx, PM2
 - **CI/CD** : GitHub Actions (scp-action, ssh-action)
+- **Code Quality** : Spotless, google-java-format
 
 ## 배포 파이프라인
 1. `main` 브랜치 Push 시 GitHub Actions 워크플로우 실행
