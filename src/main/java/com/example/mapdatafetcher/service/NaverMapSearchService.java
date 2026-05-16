@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Base64;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -240,17 +241,80 @@ public class NaverMapSearchService {
   }
 
   private JsonNode extractGraphqlItems(JsonNode response) {
-    JsonNode payload = response;
-    if (response.isArray() && !response.isEmpty()) {
-      payload = response.get(0);
-    }
-
-    JsonNode items = payload.path("data").path("restaurants").path("items");
-    if (items.isArray()) {
+    JsonNode items = findItemsNode(response.path("data"));
+    if (items != null) {
       return items;
     }
 
+    if (response.isArray()) {
+      JsonNode firstEmptyItems = null;
+      for (JsonNode payload : response) {
+        JsonNode candidate = findItemsNode(payload.path("data"));
+        if (candidate == null) {
+          continue;
+        }
+        if (!candidate.isEmpty()) {
+          return candidate;
+        }
+        if (firstEmptyItems == null) {
+          firstEmptyItems = candidate;
+        }
+      }
+      if (firstEmptyItems != null) {
+        return firstEmptyItems;
+      }
+    }
+
     return JsonNodeFactory.instance.arrayNode();
+  }
+
+  private JsonNode findItemsNode(JsonNode node) {
+    if (node == null || node.isMissingNode() || node.isNull()) {
+      return null;
+    }
+
+    if (node.isObject()) {
+      JsonNode directItems = node.get("items");
+      if (directItems != null && directItems.isArray()) {
+        return directItems;
+      }
+
+      JsonNode firstEmptyItems = null;
+      Iterator<JsonNode> children = node.elements();
+      while (children.hasNext()) {
+        JsonNode child = children.next();
+        JsonNode candidate = findItemsNode(child);
+        if (candidate == null) {
+          continue;
+        }
+        if (!candidate.isEmpty()) {
+          return candidate;
+        }
+        if (firstEmptyItems == null) {
+          firstEmptyItems = candidate;
+        }
+      }
+      return firstEmptyItems;
+    }
+
+    if (node.isArray()) {
+      JsonNode firstEmptyItems = null;
+      for (JsonNode child : node) {
+        JsonNode candidate = findItemsNode(child);
+        if (candidate == null) {
+          continue;
+        }
+        if (!candidate.isEmpty()) {
+          return candidate;
+        }
+        if (firstEmptyItems == null) {
+          firstEmptyItems = candidate;
+        }
+      }
+      return firstEmptyItems;
+    }
+
+    return null;
   }
 
   private String waitForSearchResponseBody(ChromeDriver driver, String responseUrlKeyword)
